@@ -3,204 +3,68 @@ package com.truyenho.controller;
 import com.truyenho.model.Customer;
 import com.truyenho.service.CustomerService;
 import com.truyenho.service.CustomerServiceImpl;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.List;
-
-public class CustomerServlet extends HttpServlet {
+@Controller
+public class CustomerServlet {
 
   private CustomerService customerService = new CustomerServiceImpl();
 
-  protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-    String action = request.getParameter("action");
-    if(action == null){
-      action = "";
-    }
-    switch (action){
-      case "create":
-        createCustomer(request, response);
-        break;
-      case "edit":
-        updateCustomer(request, response);
-        break;
-      case "delete":
-        deleteCustomer(request, response);
-        break;
-      default:
-        break;
-    }
+  @GetMapping("/")
+  public String index(Model model) {
+    model.addAttribute("customers", customerService.findAll());
+    return "index";
   }
 
-  protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-    String action = request.getParameter("action");
-    if(action == null){
-      action = "";
-    }
-    switch (action){
-      case "create":
-        showCreateForm(request, response);
-        break;
-      case "edit":
-        showEditForm(request, response);
-        break;
-      case "delete":
-        showDeleteForm(request, response);
-        break;
-      case "view":
-        viewCustomer(request, response);
-        break;
-      default:
-        listCustomers(request, response);
-        break;
-    }
+  @GetMapping("/customer/create")
+  public String create(Model model) {
+    model.addAttribute("customer", new Customer());
+    return "create";
   }
 
-  private void viewCustomer(HttpServletRequest request, HttpServletResponse response) {
-    int id = Integer.parseInt(request.getParameter("id"));
-    Customer customer = this.customerService.findById(id);
-    RequestDispatcher dispatcher;
-    if(customer == null){
-      dispatcher = request.getRequestDispatcher("error-404.jsp");
-    } else {
-      request.setAttribute("customer", customer);
-      dispatcher = request.getRequestDispatcher("customer/view.jsp");
-    }
-    try {
-      dispatcher.forward(request, response);
-    } catch (ServletException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  @PostMapping("/customer/save")
+  public String save(Customer customer, RedirectAttributes redirect) {
+    customer.setId((int) (Math.random() * 10000));
+    customerService.save(customer);
+    redirect.addFlashAttribute("success", "Saved customer successfully!");
+    return "redirect:/";
   }
 
-  private void deleteCustomer(HttpServletRequest request, HttpServletResponse response) {
-    int id = Integer.parseInt(request.getParameter("id"));
-    Customer customer = this.customerService.findById(id);
-    RequestDispatcher dispatcher;
-    if(customer == null){
-      dispatcher = request.getRequestDispatcher("error-404.jsp");
-    } else {
-      this.customerService.remove(id);
-      try {
-        response.sendRedirect("/customers");
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
+  @GetMapping("/customer/{id}/edit")
+  public String edit(@PathVariable int id, Model model) {
+    model.addAttribute("customer", customerService.findById(id));
+    return "edit";
   }
 
-  private void showDeleteForm(HttpServletRequest request, HttpServletResponse response) {
-    int id = Integer.parseInt(request.getParameter("id"));
-    Customer customer = this.customerService.findById(id);
-    RequestDispatcher dispatcher;
-    if(customer == null){
-      dispatcher = request.getRequestDispatcher("error-404.jsp");
-    } else {
-      request.setAttribute("customer", customer);
-      dispatcher = request.getRequestDispatcher("customer/delete.jsp");
-    }
-    try {
-      dispatcher.forward(request, response);
-    } catch (ServletException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  @PostMapping("/customer/update")
+  public String update(Customer customer, RedirectAttributes redirect) {
+    customerService.update(customer.getId(), customer);
+    redirect.addFlashAttribute("success", "Modified customer successfully!");
+    return "redirect:/";
   }
 
-  private void updateCustomer(HttpServletRequest request, HttpServletResponse response) {
-    int id = Integer.parseInt(request.getParameter("id"));
-    String name = request.getParameter("name");
-    String email = request.getParameter("email");
-    String address = request.getParameter("address");
-    Customer customer = this.customerService.findById(id);
-    RequestDispatcher dispatcher;
-    if(customer == null){
-      dispatcher = request.getRequestDispatcher("error-404.jsp");
-    } else {
-      customer.setName(name);
-      customer.setEmail(email);
-      customer.setAddress(address);
-      this.customerService.update(id, customer);
-      request.setAttribute("customer", customer);
-      request.setAttribute("message", "Customer information was updated");
-      dispatcher = request.getRequestDispatcher("customer/edit.jsp");
-    }
-    try {
-      dispatcher.forward(request, response);
-    } catch (ServletException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  @GetMapping("/customer/{id}/delete")
+  public String delete(@PathVariable int id, Model model) {
+    model.addAttribute("customer", customerService.findById(id));
+    return "delete";
   }
 
-  private void showEditForm(HttpServletRequest request, HttpServletResponse response) {
-    int id = Integer.parseInt(request.getParameter("id"));
-    Customer customer = this.customerService.findById(id);
-    RequestDispatcher dispatcher;
-    if(customer == null){
-      dispatcher = request.getRequestDispatcher("error-404.jsp");
-    } else {
-      request.setAttribute("customer", customer);
-      dispatcher = request.getRequestDispatcher("customer/edit.jsp");
-    }
-    try {
-      dispatcher.forward(request, response);
-    } catch (ServletException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  @PostMapping("/customer/delete")
+  public String delete(Customer customer, RedirectAttributes redirect) {
+    customerService.remove(customer.getId());
+    redirect.addFlashAttribute("success", "Removed customer successfully!");
+    return "redirect:/";
   }
 
-  private void createCustomer(HttpServletRequest request, HttpServletResponse response) {
-    String name = request.getParameter("name");
-    String email = request.getParameter("email");
-    String address = request.getParameter("address");
-    int id = (int)(Math.random() * 10000);
-
-    Customer customer = new Customer(id, name, email, address);
-    this.customerService.save(customer);
-    RequestDispatcher dispatcher = request.getRequestDispatcher("customer/create.jsp");
-    request.setAttribute("message", "New customer was created");
-    try {
-      dispatcher.forward(request, response);
-    } catch (ServletException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  @GetMapping("/customer/{id}/view")
+  public String view(@PathVariable int id, Model model) {
+    model.addAttribute("customer", customerService.findById(id));
+    return "view";
   }
 
-  private void showCreateForm(HttpServletRequest request, HttpServletResponse response) {
-    RequestDispatcher dispatcher = request.getRequestDispatcher("customer/create.jsp");
-    try {
-      dispatcher.forward(request, response);
-    } catch (ServletException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
-
-  private void listCustomers(HttpServletRequest request, HttpServletResponse response) {
-    List<Customer> customers = this.customerService.findAll();
-    request.setAttribute("customers", customers);
-
-    RequestDispatcher dispatcher = request.getRequestDispatcher("customer/list.jsp");
-    try {
-      dispatcher.forward(request, response);
-    } catch (ServletException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
 }
